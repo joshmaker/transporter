@@ -18,8 +18,8 @@ class LocalFileAdapter(object):
         if uri and uri.path:
             self.cd(uri.path)
 
-    def cd(self, path=os.curdir):
-        new_path = self.pwd(path)
+    def cd(self, path):
+        new_path = os.path.join(self.path, path)
         if os.path.exists(new_path):
             self.path = new_path
         else:
