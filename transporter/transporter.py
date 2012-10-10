@@ -26,15 +26,15 @@ class Transporter(object):
 
     def __init__(self, uri):
         uri = urlparse(uri)
-        if uri.scheme not in self.availible_adaptors:
+        if uri.scheme not in self.availible_adapters:
             msg = "{0} is not a support scheme. Availible schemes: {1}".format(
-                    uri.scheme, [s for s in self.availible_adaptors])
+                    uri.scheme, [s for s in self.availible_adapters])
             raise NotImplemented(msg)
 
-        self.adaptor = self.availible_adaptors[uri.scheme](uri)
+        self.adaptor = self.availible_adapters[uri.scheme](uri)
 
     def __getattr__(self, attr):
-        return getattr(self.adaptor, attr)
+        return getattr(self.adapter, attr)
 
 
 def download(uri):
