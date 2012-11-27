@@ -3,47 +3,7 @@ import ftplib
 from urlparse import urlparse
 
 
-class LocalFileAdapter(object):
-    """Transporter adapter for working with the local file system
-    """
-
-    scheme = "file"
-    path = "/"
-
-    def __init__(self, uri=None):
-        """Takes a URI in the form of file://initial/file/path/"""
-        if uri and isinstance(uri, str):
-            uri = urlparse(uri)
-
-        if uri and uri.path:
-            self.cd(uri.path)
-
-    def cd(self, path):
-        new_path = os.path.join(self.path, path)
-        if os.path.exists(new_path):
-            self.path = new_path
-        else:
-            raise OSError("Path {0} does not exist".format(new_path))
-
-    def ls(self):
-        os.listdir(self.path)
-
-    def mkdir(self, path):
-        os.mkdir(self.pwd(path))
-
-    def pwd(self):
-        return self.path
-
-    def mv(self, source, destination):
-        self.path.rename(self.pwd(source), self.pwd(destination))
-
-
-class FtpAdapter(object):
-    """Transporter adapter for working with FTP servers
-    """
-
-    scheme = "ftp"
-    connection = ftplib.FTP()
+class AbstractAdapter(object):
 
     def __init__(self, uri=None):
         """Takes a URI in the form of ftp://username:password@server.com/"""
@@ -51,36 +11,121 @@ class FtpAdapter(object):
             uri = urlparse(uri)
 
         if uri:
-            self.connect(uri.host)
-            self.login(uri.username, uri.password)
+            if uri.hostname:
+                self.hostname = uri.hostname
+                self.connect(uri.hostname, uri.port)
+            else:
+                self.hostname = 'localhost'
+            if hasattr(uri, 'login') and hasattr(uri, 'password'):
+                self.login(uri.username, uri.password)
             if uri.path:
                 self.cd(uri.path)
 
-    def connect(self, host, port=None):
-        if self.connection:
-            self.disconnect()
-        self.connection.connect(host, port)
+    def __repr__(self):
+        return u'<{0} {1}: {2}>'.format(self.__class__.__name__,
+            self.hostname, self.path)
 
-    def login(self, username, password):
-        self.connection.login(user=username, passwd=password)
+    def _open_file_or_string(self, data):
+        data_type = type(data)
+        if data_type is file:
+            return data.read()
+        elif data_type is str:
+            return data
+        else:
+            raise NotImplementedError(
+                "Unable to extract data from %s, should be str or file" % data_type)
+
+
+class LocalFileAdapter(AbstractAdapter):
+    """Transporter adapter for working with the local file system
+    """
+
+    scheme = "file"
+    path = "/"
 
     def cd(self, path="."):
-        self.connection.cwd(path)
-
-    def ls(self):
-        return self.connection.nlst()
-
-    def mkdir(self, path):
-        self.connection.mkd(path)
-
-    def mv(self, source, destination):
-        self.connection.rename(source, destination)
-
-    def rm(self, path):
-        return self.connection.delete(path)
+        new_path = os.path.abspath(os.path.join(self.path, path))
+        if os.path.exists(new_path):
+            self.path = new_path
+        else:
+            raise OSError("Path {0} does not exist".format(new_path))
 
     def pwd(self):
-        return self.connection.pwd()
+        return self.path
 
-    def disconnect(self, host):
-        self.connection.quit()
+    def ls(self):
+        os.listdir(self.path)
+
+    def mkdir(self, path):
+        os.mkdir(os.path.join(self.pwd(), path))
+
+    def mv(self, source, destination):
+        self.path.rename(self.pwd(source), self.pwd(destination))
+
+    def rm(self, path):
+        path = os.path.join(self.path, path)
+        os.unlink(path)
+
+    def rmdir(self, path):
+        path = os.path.join(self.path, path)
+        os.rmdir(path)
+
+    def get(self, path):
+        path = os.path.join(self.path, path)
+        return open(path, 'r+b')
+
+    def put(self, data, path):
+        data = self._open_file_or_string(data)
+        path = os.path.join(self.path, path)
+
+        new_file = open(path, 'w')
+        new_file.write(data)
+        new_file.close()
+        return new_file
+
+
+class FtpAdapter(AbstractAdapter):
+    """Transporter adapter for working with FTP servers
+    """
+
+    scheme = "ftp"
+    ftp = None
+
+    def __init__(self, *args, **kwargs):
+        super(FtpAdapter, self).__init__(*args, **kwargs)
+
+    def connect(self, host, port=None):
+        if self.ftp:
+            self.disconnect()
+
+        self.ftp = ftplib.FTP()
+        self.ftp.connect(host, port)
+
+    def login(self, username, password):
+        self.ftp.login(user=username, passwd=password)
+
+    def cd(self, path="."):
+        self.ftp.cwd(path)
+
+    def pwd(self):
+        return self.ftp.pwd()
+
+    def ls(self):
+        return self.ftp.nlst()
+
+    def mkdir(self, path):
+        self.ftp.mkd(path)
+
+    def mv(self, source, destination):
+        self.ftp.rename(source, destination)
+
+    def rm(self, path):
+        self.ftp.delete(path)
+
+    def rmdir(self, path):
+        self.ftp.rmd(path)
+
+    def disconnect(self):
+        if self.ftp:
+            self.ftp.quit()
+            self.ftp = None
