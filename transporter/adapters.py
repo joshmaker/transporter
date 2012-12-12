@@ -7,6 +7,7 @@ class AbstractAdapter(object):
 
     def __init__(self, uri=None):
         """Takes a URI in the form of ftp://username:password@server.com/"""
+
         if uri and isinstance(uri, str):
             uri = urlparse(uri)
 
@@ -16,14 +17,20 @@ class AbstractAdapter(object):
                 self.connect(uri.hostname, uri.port)
             else:
                 self.hostname = 'localhost'
-            if hasattr(uri, 'login') and hasattr(uri, 'password'):
+
+            if getattr(uri, 'username', False) and getattr(uri, 'password', False):
                 self.login(uri.username, uri.password)
+
             if uri.path:
                 self.cd(uri.path)
 
     def __repr__(self):
         return u'<{0} {1}: {2}>'.format(self.__class__.__name__,
-            self.hostname, self.path)
+            self.hostname, self.pwd())
+
+    def __del__(self):
+        if hasattr(self, 'disconnect'):
+            self.disconnect()
 
     def _open_file_or_string(self, data):
         data_type = type(data)
@@ -124,6 +131,13 @@ class FtpAdapter(AbstractAdapter):
 
     def rmdir(self, path):
         self.ftp.rmd(path)
+
+    def get(self, path):
+        return self.ftp.retrlines(path)
+
+    def put(self, data, path):
+        data = self._open_file_or_string(data)
+        self.ftp.storlines('STOR %s' % os.path.basename(path), data)
 
     def disconnect(self):
         if self.ftp:
