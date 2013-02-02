@@ -15,6 +15,7 @@ data = get('http://example.com/path/to/file.txt')
 put('ftp://josh:password@example.com/path/to/new_file.txt', 'file contents')
 transport('http://josh:password@www.example.com/path/to/file.txt',
         '/Users/josh/Desktop/file.txt')
+```
 
 ## Initializing Transporter objects
 
