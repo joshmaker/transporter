@@ -57,8 +57,8 @@ class LocalFileAdapter(AbstractAdapter):
         else:
             raise OSError("Path {0} does not exist".format(new_path))
 
-    def pwd(self):
-        return self.path
+    def pwd(self, path=""):
+        return os.path.join(self.path, path).rstrip('\/')
 
     def ls(self):
         return os.listdir(self.path)
@@ -67,7 +67,7 @@ class LocalFileAdapter(AbstractAdapter):
         os.mkdir(os.path.join(self.pwd(), path))
 
     def mv(self, source, destination):
-        self.path.rename(self.pwd(source), self.pwd(destination))
+        os.rename(self.pwd(source), self.pwd(destination))
 
     def rm(self, path):
         path = os.path.join(self.path, path)
@@ -110,8 +110,8 @@ class FtpAdapter(AbstractAdapter):
     def cd(self, path="."):
         self.ftp.cwd(path)
 
-    def pwd(self):
-        return self.ftp.pwd()
+    def pwd(self, path=""):
+        return os.path.join(self.ftp.pwd(), path).rstrip('\/')
 
     def ls(self):
         return self.ftp.nlst()

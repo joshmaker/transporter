@@ -66,6 +66,15 @@ class TestBase(object):
 
         self.assertFalse(os.path.exists('delete_me'))
 
+    def test_mv(self):
+        os.mkdir('lock')
+        self.__create_file('key.txt')
+        final_path = os.path.join(sample_dir, 'lock', 'key.txt')
+
+        self.assertFalse(os.path.exists(final_path))
+        self.transporter.mv('key.txt', os.path.join('lock', 'key.txt'))
+        self.assertTrue(os.path.exists(final_path))
+
     def test_get(self):
         path = os.path.join(sample_dir, 'get_file.txt')
         source_data = self.__create_file(path)
