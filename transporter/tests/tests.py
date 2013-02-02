@@ -40,6 +40,11 @@ class TestBase(object):
 
     def test_pwd(self):
         self.assertEqual(self.adapter.pwd(), self.root_path)
+        os.mkdir('test_folder')
+        self.adapter.cd('test_folder')
+        self.assertNotEqual(self.adapter.pwd(), self.root_path)
+        self.assertEqual(self.adapter.pwd(),
+            os.path.join(self.root_path, 'test_folder'))
 
     def test_cd(self):
         os.mkdir(os.path.join(sample_dir, 'cd_dir'))
