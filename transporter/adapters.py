@@ -62,7 +62,7 @@ class LocalFileAdapter(AbstractAdapter):
         return self.path
 
     def ls(self):
-        os.listdir(self.path)
+        return os.listdir(self.path)
 
     def mkdir(self, path):
         os.mkdir(os.path.join(self.pwd(), path))

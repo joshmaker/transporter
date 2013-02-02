@@ -91,6 +91,12 @@ class TestBase(object):
         self.assertTrue(os.path.exists(write_path))
         self.assertEqual(data, open(write_path, 'r').read())
 
+    def test_ls(self):
+        self.assertEqual(self.adapter.ls(), [])
+        os.mkdir('ls_dir')
+        self.__create_file('ls_file')
+        self.assertEqual(self.adapter.ls(), ['ls_dir', 'ls_file'])
+
     def __create_file(self, path):
         data = 'Time: %s' % time.time()
         new_file = open(path, 'w')
