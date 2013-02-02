@@ -1,5 +1,6 @@
 import os
 import ftplib
+from cStringIO import StringIO
 from urlparse import urlparse
 
 
@@ -121,7 +122,7 @@ class FtpAdapter(AbstractAdapter):
         return self.ftp.nlst()
 
     def mkdir(self, path):
-        self.ftp.mkd(path)
+        self.ftp.mkd(os.path.join(self.pwd(), path))
 
     def mv(self, source, destination):
         self.ftp.rename(source, destination)
@@ -133,11 +134,14 @@ class FtpAdapter(AbstractAdapter):
         self.ftp.rmd(path)
 
     def get(self, path):
-        return self.ftp.retrlines(path)
+        io = StringIO()
+        self.ftp.retrbinary(u'RETR %s' % path, io.write)
+        io.seek(0)
+        return io
 
     def put(self, data, path):
-        data = self._open_file_or_string(data)
-        self.ftp.storlines('STOR %s' % os.path.basename(path), data)
+        data = StringIO(self._open_file_or_string(data))
+        self.ftp.storbinary(u'STOR %s' % os.path.basename(path), data)
 
     def disconnect(self):
         if self.ftp:
