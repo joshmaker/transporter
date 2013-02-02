@@ -48,7 +48,6 @@ class LocalFileAdapter(AbstractAdapter):
     """Transporter adapter for working with the local file system
     """
 
-    scheme = "file"
     path = "/"
 
     def cd(self, path="."):
@@ -96,11 +95,7 @@ class FtpAdapter(AbstractAdapter):
     """Transporter adapter for working with FTP servers
     """
 
-    scheme = "ftp"
     ftp = None
-
-    def __init__(self, *args, **kwargs):
-        super(FtpAdapter, self).__init__(*args, **kwargs)
 
     def connect(self, host, port=None):
         if self.ftp:
