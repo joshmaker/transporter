@@ -3,18 +3,21 @@ import unittest
 import time
 import signal
 import shutil
-# from urlparse import urlparse
+from urlparse import urlparse
 
 from pyftpdlib import ftpserver
 
-from transporter import adapters, Transporter
+import transporter
 
 
-sample_root = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'sandbox')
+sample_root = os.path.join(
+        os.path.abspath(os.path.dirname(__file__)), 'sandbox')
 sample_dir = os.path.join(sample_root, 'dir')
 
 
 class TestBase(object):
+
+    transporter = None
 
     @classmethod
     def setUpClass(cls):
@@ -51,7 +54,14 @@ class TestBase(object):
         self.transporter.cd('cd_dir')
         self.transporter.cd('..')
 
-        self.assertRaises(Exception, lambda: self.transporter.cd('not_a_dir'))
+        self.assertRaises(Exception,
+                lambda: self.transporter.cd('not_a_dir'))
+
+    def test_ls(self):
+        self.assertEqual(self.transporter.ls(), [])
+        os.mkdir('ls_dir')
+        self.__create_file('ls_file')
+        self.assertEqual(self.transporter.ls(), ['ls_dir', 'ls_file'])
 
     def test_mkdir(self):
         self.assertFalse(os.path.exists('new_dir'))
@@ -100,12 +110,6 @@ class TestBase(object):
         self.assertTrue(os.path.exists(write_path))
         self.assertEqual(data, open(write_path, 'r').read())
 
-    def test_ls(self):
-        self.assertEqual(self.transporter.ls(), [])
-        os.mkdir('ls_dir')
-        self.__create_file('ls_file')
-        self.assertEqual(self.transporter.ls(), ['ls_dir', 'ls_file'])
-
     def __create_file(self, path):
         data = 'Time: %s' % time.time()
         new_file = open(path, 'w')
@@ -116,52 +120,48 @@ class TestBase(object):
 
 class TestLocalFileAdapter(TestBase, unittest.TestCase):
 
+    uri = sample_dir
+    root_path = sample_dir
+
     @classmethod
     def setUpClass(cls):
         TestBase.setUpClass()
-        cls.root_path = sample_dir
-        cls.transporter = Transporter(cls.root_path)
+        cls.transporter = transporter.Transporter(cls.uri)
 
     def test_adapter_type(self):
-        self.assertEqual(type(self.transporter.adapter), adapters.LocalFileAdapter)
+        self.assertEqual(type(self.transporter.adapter), 
+            transporter.adapters.LocalFileAdapter)
 
 
 class TestFtptransporter(TestBase, unittest.TestCase):
 
+    uri = 'ftp://user1:pA$$w0rd@127.0.0.1:8021'
+    root_path = '/dir'
+
     @classmethod
     def setUpClass(cls):
-        cls.root_path = '/dir'
-
-        username = 'user1'
-        password = 'passw0rd'
-        port = 4452
-        host = '127.0.0.1'
-
         cls.pid = os.fork()
         if cls.pid == 0:
+            uri = urlparse(cls.uri)
             authorizer = ftpserver.DummyAuthorizer()
-            authorizer.add_user(username, password, sample_root, perm="elradfmw")
+            authorizer.add_user(uri.username, uri.password,
+                    sample_root, perm="elradfmw")
             handler = ftpserver.FTPHandler
             handler.authorizer = authorizer
-            ftpd = ftpserver.FTPServer((host, port), handler)
+            ftpd = ftpserver.FTPServer((uri.hostname, uri.port), handler)
             ftpd.serve_forever()
-
-        time.sleep(1)
-
-        uri = 'ftp://{user}:{passwd}@{host}:{port}'.format(
-                user=username, passwd=password,
-                host=host, port=port)
-        cls.transporter = Transporter(uri)
+        time.sleep(0.5)
+        cls.transporter = transporter.Transporter(cls.uri)
 
     @classmethod
     def tearDownClass(cls):
         cls.transporter.disconnect()
-        print cls.pid
         os.kill(cls.pid, signal.SIGTERM)
         os.wait()
 
     def test_adapter_type(self):
-        self.assertEqual(type(self.transporter.adapter), adapters.FtpAdapter)
+        self.assertEqual(type(self.transporter.adapter), 
+            transporter.adapters.FtpAdapter)
 
 if __name__ == '__main__':
     unittest.main()
