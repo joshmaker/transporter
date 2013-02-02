@@ -29,7 +29,7 @@ class TestBase(object):
 
     def setUp(self):
         TestBase.setUpClass()
-        self.adapter.cd(self.root_path)
+        self.transporter.cd(self.root_path)
 
     def tearDown(self):
         TestBase.tearDownClass()
@@ -39,44 +39,44 @@ class TestBase(object):
         self.assertFalse(False)
 
     def test_pwd(self):
-        self.assertEqual(self.adapter.pwd(), self.root_path)
+        self.assertEqual(self.transporter.pwd(), self.root_path)
         os.mkdir('test_folder')
-        self.adapter.cd('test_folder')
-        self.assertNotEqual(self.adapter.pwd(), self.root_path)
-        self.assertEqual(self.adapter.pwd(),
+        self.transporter.cd('test_folder')
+        self.assertNotEqual(self.transporter.pwd(), self.root_path)
+        self.assertEqual(self.transporter.pwd(),
             os.path.join(self.root_path, 'test_folder'))
 
     def test_cd(self):
         os.mkdir(os.path.join(sample_dir, 'cd_dir'))
-        self.adapter.cd('cd_dir')
-        self.adapter.cd('..')
+        self.transporter.cd('cd_dir')
+        self.transporter.cd('..')
 
-        self.assertRaises(Exception, lambda: self.adapter.cd('not_a_dir'))
+        self.assertRaises(Exception, lambda: self.transporter.cd('not_a_dir'))
 
     def test_mkdir(self):
         self.assertFalse(os.path.exists('new_dir'))
-        self.adapter.mkdir('new_dir')
+        self.transporter.mkdir('new_dir')
 
         self.assertTrue(os.path.exists('new_dir'))
 
     def test_rmdir(self):
         os.mkdir('delete_me')
         self.assertTrue(os.path.exists('delete_me'))
-        self.adapter.rmdir('delete_me')
+        self.transporter.rmdir('delete_me')
 
         self.assertFalse(os.path.exists('delete_me'))
 
     def test_get(self):
         path = os.path.join(sample_dir, 'get_file.txt')
         source_data = self.__create_file(path)
-        data = self.adapter.get('get_file.txt')
+        data = self.transporter.get('get_file.txt')
 
         self.assertEqual(data.read(), source_data)
 
     def test_put_str(self):
         data = 'Time: %s' % time.localtime()
         file_name = 'created_from_str.txt'
-        self.adapter.put(data, file_name)
+        self.transporter.put(data, file_name)
 
         file_path = os.path.join(sample_dir, file_name)
         self.assertTrue(os.path.exists(file_path))
@@ -86,16 +86,16 @@ class TestBase(object):
         read_path = os.path.join(sample_dir, 'read_from_me.txt')
         write_path = os.path.join(sample_dir, 'write_to_me.txt')
         data = self.__create_file(read_path)
-        self.adapter.put(open('read_from_me.txt'), 'write_to_me.txt')
+        self.transporter.put(open('read_from_me.txt'), 'write_to_me.txt')
 
         self.assertTrue(os.path.exists(write_path))
         self.assertEqual(data, open(write_path, 'r').read())
 
     def test_ls(self):
-        self.assertEqual(self.adapter.ls(), [])
+        self.assertEqual(self.transporter.ls(), [])
         os.mkdir('ls_dir')
         self.__create_file('ls_file')
-        self.assertEqual(self.adapter.ls(), ['ls_dir', 'ls_file'])
+        self.assertEqual(self.transporter.ls(), ['ls_dir', 'ls_file'])
 
     def __create_file(self, path):
         data = 'Time: %s' % time.time()
@@ -111,10 +111,13 @@ class TestLocalFileAdapter(TestBase, unittest.TestCase):
     def setUpClass(cls):
         TestBase.setUpClass()
         cls.root_path = sample_dir
-        cls.adapter = adapters.LocalFileAdapter(cls.root_path)
+        cls.transporter = Transporter(cls.root_path)
+
+    def test_adapter_type(self):
+        self.assertEqual(type(self.transporter.adapter), adapters.LocalFileAdapter)
 
 
-class TestFtpAdapter(TestBase, unittest.TestCase):
+class TestFtptransporter(TestBase, unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -139,15 +142,17 @@ class TestFtpAdapter(TestBase, unittest.TestCase):
         uri = 'ftp://{user}:{passwd}@{host}:{port}'.format(
                 user=username, passwd=password,
                 host=host, port=port)
-        cls.adapter = adapters.FtpAdapter(uri)
+        cls.transporter = Transporter(uri)
 
     @classmethod
     def tearDownClass(cls):
-        cls.adapter.disconnect()
+        cls.transporter.disconnect()
         print cls.pid
         os.kill(cls.pid, signal.SIGTERM)
         os.wait()
 
+    def test_adapter_type(self):
+        self.assertEqual(type(self.transporter.adapter), adapters.FtpAdapter)
 
 if __name__ == '__main__':
     unittest.main()
