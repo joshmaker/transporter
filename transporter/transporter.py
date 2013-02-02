@@ -19,16 +19,18 @@ class Transporter(object):
         "ftps": adapters.FtpAdapter,
         "file": adapters.LocalFileAdapter
     }
+    default_scheme = "file"
     adapter = None
 
     def __init__(self, uri):
         uri = urlparse(uri)
-        if uri.scheme not in self.availible_adapters:
+        scheme = uri.scheme or self.default_scheme
+        if scheme not in self.availible_adapters:
             msg = u"{0} is not a support scheme. Availible schemes: {1}".format(
-                    uri.scheme, [s for s in self.availible_adapters])
+                    scheme, [s for s in self.availible_adapters])
             raise NotImplemented(msg)
 
-        self.adapter = self.availible_adapters[uri.scheme](uri)
+        self.adapter = self.availible_adapters[scheme](uri)
 
     def __getattr__(self, attr):
         return getattr(self.adapter, attr)
