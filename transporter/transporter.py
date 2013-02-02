@@ -41,17 +41,17 @@ class Transporter(object):
         return u'<Transporter {0}>'.format(self.adapter.__repr__())
 
 
-def download(uri):
+def get(uri):
     f = os.path.basename(uri)
     uri = os.path.dirname(uri)
-    uri = urlparse(uri)
-    return Transporter(uri).download(f)
+    return Transporter(uri).get(f)
 
 
-def upload(f, uri):
-    return Transporter(uri).upload(f)
+def put(uri, data):
+    f = os.path.basename(uri)
+    uri = os.path.dirname(uri)
+    return Transporter(uri).put(f, data)
 
 
 def transport(source, destination):
-    f = download(source)
-    return upload(destination, f)
+    return put(destination, get(source))

@@ -92,10 +92,15 @@ class TestBase(object):
 
         self.assertEqual(data.read(), source_data)
 
+    def test_get_util(self):
+        source_data = self.__create_file('get_file.txt')
+        data = transporter.get(os.path.join(self.uri, 'get_file.txt'))
+        self.assertEqual(data.read(), source_data)
+
     def test_put_str(self):
         data = 'Time: %s' % time.localtime()
         file_name = 'created_from_str.txt'
-        self.transporter.put(data, file_name)
+        self.transporter.put(file_name, data)
 
         file_path = os.path.join(sample_dir, file_name)
         self.assertTrue(os.path.exists(file_path))
@@ -105,10 +110,32 @@ class TestBase(object):
         read_path = os.path.join(sample_dir, 'read_from_me.txt')
         write_path = os.path.join(sample_dir, 'write_to_me.txt')
         data = self.__create_file(read_path)
-        self.transporter.put(open('read_from_me.txt'), 'write_to_me.txt')
+        self.transporter.put('write_to_me.txt', open('read_from_me.txt'))
 
         self.assertTrue(os.path.exists(write_path))
         self.assertEqual(data, open(write_path, 'r').read())
+
+    def test_put_util(self):
+        data = 'Time: %s' % time.localtime()
+        file_name = 'created_from_str.txt'
+        transporter.put(os.path.join(self.uri, file_name), data)
+
+        file_path = os.path.join(sample_dir, file_name)
+        self.assertTrue(os.path.exists(file_path))
+        self.assertEqual(data, open(file_path, 'r').read())
+
+    def test_transport_uril(self):
+        orig_data = self.__create_file('source.txt')
+
+        orig = os.path.join(self.uri, 'source.txt')
+        dest = os.path.join(self.uri, 'dest.txt')
+        dest_path = os.path.join(sample_dir, 'dest.txt')
+
+        self.assertFalse(os.path.exists(dest_path))
+        transporter.transport(orig, dest)
+        self.assertTrue(os.path.exists(dest_path))
+        self.assertEqual(orig_data, open(dest_path, 'r').read())
+
 
     def __create_file(self, path):
         data = 'Time: %s' % time.time()
@@ -135,7 +162,7 @@ class TestLocalFileAdapter(TestBase, unittest.TestCase):
 
 class TestFtptransporter(TestBase, unittest.TestCase):
 
-    uri = 'ftp://user1:pA$$w0rd@127.0.0.1:8021'
+    uri = 'ftp://user1:pA$$w0rd@127.0.0.1:8021/dir'
     root_path = '/dir'
 
     @classmethod
@@ -150,7 +177,9 @@ class TestFtptransporter(TestBase, unittest.TestCase):
             handler.authorizer = authorizer
             ftpd = ftpserver.FTPServer((uri.hostname, uri.port), handler)
             ftpd.serve_forever()
-        time.sleep(0.5)
+
+        time.sleep(0.5)  # give time for the FTP server to launch
+        TestBase.setUpClass()
         cls.transporter = transporter.Transporter(cls.uri)
 
     @classmethod

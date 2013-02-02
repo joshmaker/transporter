@@ -41,13 +41,14 @@ class AbstractAdapter(object):
 
     def _open_file_or_string(self, data):
         data_type = type(data)
-        if data_type is file:
+        if hasattr(data, 'read'):
             return data.read()
         elif data_type is str:
             return data
         else:
             raise NotImplementedError(
-                "Unable to extract data from %s, should be str or file" % data_type)
+                "Unable to extract data from %s, should be str "
+                "or file like object with a read method" % data_type)
 
 
 class LocalFileAdapter(AbstractAdapter):
@@ -87,7 +88,7 @@ class LocalFileAdapter(AbstractAdapter):
         path = os.path.join(self.path, path)
         return open(path, 'r+b')
 
-    def put(self, data, path):
+    def put(self, path, data):
         data = self._open_file_or_string(data)
         path = os.path.join(self.path, path)
 
@@ -140,7 +141,7 @@ class FtpAdapter(AbstractAdapter):
         io.seek(0)
         return io
 
-    def put(self, data, path):
+    def put(self, path, data):
         data = StringIO(self._open_file_or_string(data))
         self.ftp.storbinary(u'STOR %s' % os.path.basename(path), data)
 

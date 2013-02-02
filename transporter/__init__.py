@@ -1,1 +1,1 @@
-from .transporter import Transporter, download, upload, transport
+from .transporter import Transporter, get, put, transport
