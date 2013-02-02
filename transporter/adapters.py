@@ -1,10 +1,14 @@
 import os
 import ftplib
+import urllib2
 from cStringIO import StringIO
 from urlparse import urlparse
+from posixpath import join as join_url_path
 
 
 class AbstractAdapter(object):
+
+    uri = None
 
     def __init__(self, uri=None):
         """Takes a URI in the form of ftp://username:password@server.com/"""
@@ -24,6 +28,8 @@ class AbstractAdapter(object):
 
             if uri.path:
                 self.cd(uri.path)
+
+            self.uri = uri
 
     def __repr__(self):
         return u'<{0} {1}: {2}>'.format(self.__class__.__name__,
@@ -142,3 +148,32 @@ class FtpAdapter(AbstractAdapter):
         if self.ftp:
             self.ftp.quit()
             self.ftp = None
+
+
+class HttpAdapter(AbstractAdapter):
+
+    host = None
+    port = None
+    path = '/'
+    opener = None
+
+    def connect(self, host, port):
+        self.host = host
+        self.port = port
+
+    def login(self, username, password):
+        manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        manager.add_password(None, self.hostname, username, password)
+        handler = urllib2.HTTPDigestAuthHandler(manager)
+        self.opener = urllib2.build_opener(handler)
+
+    def cd(self, path="."):
+        self.path = join_url_path(self.path, path)
+
+    def get(self, path):
+        url = self.uri.geturl()
+        if self.opener:
+            result = self.opener.open(url)
+        else:
+            result = urllib2.urlopen(url)
+        return result

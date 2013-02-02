@@ -17,7 +17,9 @@ class Transporter(object):
     availible_adapters = {
         "ftp": adapters.FtpAdapter,
         "ftps": adapters.FtpAdapter,
-        "file": adapters.LocalFileAdapter
+        "file": adapters.LocalFileAdapter,
+        "http": adapters.HttpAdapter,
+        "https": adapters.HttpAdapter,
     }
     default_scheme = "file"
     adapter = None
