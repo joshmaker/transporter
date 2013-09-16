@@ -62,7 +62,7 @@ print t.ls()  # ['sub_folder']
 t.mv('sub_folder', 'new_name')
 t.rmdir('new_name')
 
-t2 = Transporter('ftp://joshmaker:p@ssw0rd@example.com/folder/')
+t2 = Transporter('ftp://joshmaker:pa$sw0rd@example.com/folder/')
 t2.mkdir('new_folder')
 t2.mkdir('new_folder/sub_folder')
 t2.ls('new_folder')  # ['sub_folder']
@@ -82,7 +82,7 @@ from transporter import Transporter
 t1 = Transporter('file:/Users/josh')
 data = t1.get('local_file.txt')
 
-t2 = Transporter('ftp://joshmaker:p@ssw0rd@example.com/folder/')
+t2 = Transporter('ftp://joshmaker:pa$sw0rd@example.com/folder/')
 t2.put('remote_file.txt', data)
 ```
 
